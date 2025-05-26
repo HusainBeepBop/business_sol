@@ -87,6 +87,15 @@ class EmailSenderApp:
         self.tls_var = tk.BooleanVar(value=True)
         tk.Checkbutton(smtp_frame, text="Use TLS/SSL", variable=self.tls_var).grid(row=0, column=4, padx=5)
 
+        # Email format selection
+        format_frame = tk.Frame(self.root)
+        format_frame.pack(fill="x", padx=10, pady=2)
+        tk.Label(format_frame, text="Email Format:").pack(side=tk.LEFT)
+        self.format_var = tk.StringVar(value="Plain Text")
+        format_options = ["Plain Text", "HTML"]
+        self.format_menu = ttk.Combobox(format_frame, textvariable=self.format_var, values=format_options, state="readonly", width=10)
+        self.format_menu.pack(side=tk.LEFT, padx=5)
+
         # Send button
         self.send_button = tk.Button(self.root, text="Send Emails", command=self.start_sending_emails, bg="#4CAF50", fg="white", font=("Arial", 12, "bold"))
         self.send_button.pack(pady=10)
@@ -155,6 +164,7 @@ class EmailSenderApp:
         name_col = self.column_vars["Name"].get()
         email_col = self.column_vars["Email"].get()
         custom_map = {field: var.get() for field, var in self.custom_fields}
+        email_format = self.format_var.get()
         # Validation
         if not sender or not password or not smtp_host or not smtp_port:
             self.set_status("Missing sender credentials or SMTP details.")
@@ -196,7 +206,10 @@ class EmailSenderApp:
             msg['From'] = sender
             msg['To'] = email
             msg['Subject'] = subject
-            msg.attach(MIMEText(body, 'plain'))
+            if email_format == "HTML":
+                msg.attach(MIMEText(body, 'html'))
+            else:
+                msg.attach(MIMEText(body, 'plain'))
             try:
                 server.sendmail(sender, email, msg.as_string())
                 sent += 1
