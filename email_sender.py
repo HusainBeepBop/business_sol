@@ -96,6 +96,14 @@ class EmailSenderApp:
         self.format_menu = ttk.Combobox(format_frame, textvariable=self.format_var, values=format_options, state="readonly", width=10)
         self.format_menu.pack(side=tk.LEFT, padx=5)
 
+        # Delay setting
+        delay_frame = tk.Frame(self.root)
+        delay_frame.pack(fill="x", padx=10, pady=2)
+        tk.Label(delay_frame, text="Delay between emails (seconds):").pack(side=tk.LEFT)
+        self.delay_var = tk.StringVar(value="1.5")
+        self.delay_entry = tk.Entry(delay_frame, textvariable=self.delay_var, width=5)
+        self.delay_entry.pack(side=tk.LEFT, padx=5)
+
         # Send button
         self.send_button = tk.Button(self.root, text="Send Emails", command=self.start_sending_emails, bg="#4CAF50", fg="white", font=("Arial", 12, "bold"))
         self.send_button.pack(pady=10)
@@ -217,6 +225,11 @@ class EmailSenderApp:
         sent = 0
         errors = 0
         self.root.after(0, self.show_progress_bar, total)
+        try:
+            delay = float(self.delay_var.get())
+        except ValueError:
+            self.set_status("Delay must be a number.")
+            return
         for idx, row in self.df.iterrows():
             name = str(row.get(name_col, ""))
             email = str(row.get(email_col, ""))
@@ -246,7 +259,7 @@ class EmailSenderApp:
                 errors += 1
                 self.append_status(f"Error sending to {name} <{email}>: {e}")
             self.root.after(0, self.update_progress_bar, sent + errors)
-            time.sleep(1.5)
+            time.sleep(delay)
         server.quit()
         self.root.after(0, self.hide_progress_bar)
         if errors == 0:
