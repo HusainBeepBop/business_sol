@@ -107,6 +107,10 @@ class EmailSenderApp:
         self.status_text = tk.Text(status_frame, height=10, state="disabled", bg="#f0f0f0")
         self.status_text.pack(fill="both", expand=True)
 
+        # Progress bar popup (hidden by default)
+        self.progress_popup = None
+        self.progress_var = tk.DoubleVar(value=0)
+
     def browse_excel_file(self):
         file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx *.xls")])
         if file_path:
@@ -150,6 +154,29 @@ class EmailSenderApp:
         t = threading.Thread(target=self.send_emails)
         t.start()
 
+    def show_progress_bar(self, max_value):
+        if self.progress_popup is not None:
+            self.progress_popup.destroy()
+        self.progress_popup = tk.Toplevel(self.root)
+        self.progress_popup.title("Sending Emails...")
+        self.progress_popup.geometry("400x100")
+        self.progress_popup.resizable(False, False)
+        tk.Label(self.progress_popup, text="Sending emails, please wait...").pack(pady=10)
+        self.progress_bar = ttk.Progressbar(self.progress_popup, variable=self.progress_var, maximum=max_value, length=350)
+        self.progress_bar.pack(pady=10)
+        self.progress_popup.grab_set()
+        self.progress_popup.protocol("WM_DELETE_WINDOW", lambda: None)  # Disable close
+
+    def update_progress_bar(self, value):
+        self.progress_var.set(value)
+        if self.progress_popup:
+            self.progress_popup.update_idletasks()
+
+    def hide_progress_bar(self):
+        if self.progress_popup:
+            self.progress_popup.destroy()
+            self.progress_popup = None
+
     def send_emails(self):
         self.set_status("")
         if not self.df_is_ready():
@@ -189,6 +216,7 @@ class EmailSenderApp:
         total = len(self.df)
         sent = 0
         errors = 0
+        self.root.after(0, self.show_progress_bar, total)
         for idx, row in self.df.iterrows():
             name = str(row.get(name_col, ""))
             email = str(row.get(email_col, ""))
@@ -217,8 +245,10 @@ class EmailSenderApp:
             except Exception as e:
                 errors += 1
                 self.append_status(f"Error sending to {name} <{email}>: {e}")
+            self.root.after(0, self.update_progress_bar, sent + errors)
             time.sleep(1.5)
         server.quit()
+        self.root.after(0, self.hide_progress_bar)
         if errors == 0:
             self.append_status("All emails sent successfully!")
         else:
