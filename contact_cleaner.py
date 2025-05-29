@@ -193,11 +193,42 @@ class ContactCleanerApp:
         # Save reference for later editing
         self.tree = tree
 
-
-def main():
-    root = tk.Tk()
-    app = ContactCleanerApp(root)
-    root.mainloop()
-
-if __name__ == "__main__":
-    main()
+        # Direct cell editing on double-click
+        def on_double_click(event):
+            region = tree.identify('region', event.x, event.y)
+            if region != 'cell':
+                return
+            row_id = tree.identify_row(event.y)
+            col_id = tree.identify_column(event.x)
+            if not row_id or not col_id:
+                return
+            col_index = int(col_id.replace('#', '')) - 1
+            col_name = cols[col_index]
+            x, y, width, height = tree.bbox(row_id, col_id)
+            value = tree.set(row_id, col_name)
+            # Create entry widget overlay
+            entry = tk.Entry(tree, width=width//8)
+            entry.place(x=x, y=y, width=width, height=height)
+            entry.insert(0, value)
+            entry.focus()
+            def save_edit(event=None):
+                new_val = entry.get()
+                tree.set(row_id, col_name, new_val)
+                # Update DataFrame
+                item_idx = tree.index(row_id)
+                df_to_show.iloc[item_idx, col_index] = new_val
+                # If not filtered, update main df and save to CSV
+                if df_override is None:
+                    self.df.iloc[item_idx, col_index] = new_val
+                    if self.csv_path:
+                        self.df.to_csv(self.csv_path, index=False)
+                else:
+                    # If filtered, update main df as well
+                    orig_idx = df_to_show.index[item_idx]
+                    self.df.at[orig_idx, col_name] = new_val
+                    if self.csv_path:
+                        self.df.to_csv(self.csv_path, index=False)
+                entry.destroy()
+            entry.bind('<Return>', save_edit)
+            entry.bind('<FocusOut>', lambda e: entry.destroy())
+        tree.bind('<Double-1>', on_double_click)
