@@ -232,3 +232,8 @@ class ContactCleanerApp:
             entry.bind('<Return>', save_edit)
             entry.bind('<FocusOut>', lambda e: entry.destroy())
         tree.bind('<Double-1>', on_double_click)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = ContactCleanerApp(root)
+    root.mainloop()
