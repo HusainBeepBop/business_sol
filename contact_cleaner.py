@@ -113,6 +113,39 @@ class ContactCleanerApp:
         tk.Button(self.filter_frame, text="Clear Filter", command=self.clear_filter, bg="#f44336", fg="white").pack(side=tk.LEFT, padx=5)
         # Always show Export button on the right
         tk.Button(self.filter_frame, text="Export Selected", command=self.export_selected, bg="#4CAF50", fg="white").pack(side=tk.RIGHT, padx=5)
+        tk.Button(self.filter_frame, text="Delete Selected", command=self.delete_selected, bg="#ff9800", fg="white").pack(side=tk.RIGHT, padx=5)
+
+    def delete_selected(self):
+        if not hasattr(self, 'tree') or self.df is None:
+            messagebox.showwarning("No Data", "No data to delete.")
+            return
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("No Selection", "Please select rows to delete.")
+            return
+        if not messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete {len(selected)} contact(s)? This cannot be undone."):
+            return
+        # Get indices to drop
+        df_to_show = self.df if not hasattr(self, 'table_frame') or not hasattr(self, 'tree') else self.get_current_df()
+        indices = []
+        for i in selected:
+            item_idx = self.tree.index(i)
+            if hasattr(self, 'current_df_override') and self.current_df_override is not None:
+                orig_idx = self.current_df_override.index[item_idx]
+            else:
+                orig_idx = item_idx
+            indices.append(orig_idx)
+        self.df.drop(self.df.index[indices], inplace=True)
+        self.df.reset_index(drop=True, inplace=True)
+        if self.csv_path:
+            self.df.to_csv(self.csv_path, index=False)
+        self.show_table()
+
+    def get_current_df(self):
+        # Helper to get the DataFrame currently shown in the table
+        if hasattr(self, 'current_df_override') and self.current_df_override is not None:
+            return self.current_df_override
+        return self.df
 
     def apply_filter(self):
         if self.df is None:
