@@ -29,7 +29,8 @@ class ContactCleanerApp:
             try:
                 self.df = pd.read_csv(file_path)
                 messagebox.showinfo("Loaded", f"Loaded {file_path} with {len(self.df)} rows.")
-                self.show_table()  # Show table immediately after loading
+                self.add_filter_frame()
+                self.show_table()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load CSV: {e}")
 
@@ -83,20 +84,55 @@ class ContactCleanerApp:
             self.df.to_csv(self.csv_path, index=False)
             messagebox.showinfo("Cleaned", f"CSV updated to keep {len(keep_fields)} fields.")
             popup.destroy()
+            self.add_filter_frame()
             self.show_table()
         apply_btn = tk.Button(popup, text="Apply", command=apply_clean, bg="#4CAF50", fg="white")
         check_apply_visibility()
 
-    def show_table(self):
+    def add_filter_frame(self):
+        # Remove old filter frame if exists
+        if hasattr(self, 'filter_frame'):
+            self.filter_frame.destroy()
+        self.filter_frame = tk.Frame(self.root)
+        self.filter_frame.pack(fill="x", padx=10, pady=(0, 0))
+        if self.df is None or self.df.empty:
+            return
+        tk.Label(self.filter_frame, text="Filter:").pack(side=tk.LEFT, padx=(0, 5))
+        self.filter_vars = {}
+        for col in self.df.columns:
+            var = tk.StringVar()
+            self.filter_vars[col] = var
+            tk.Label(self.filter_frame, text=col+":").pack(side=tk.LEFT)
+            entry = tk.Entry(self.filter_frame, textvariable=var, width=10)
+            entry.pack(side=tk.LEFT, padx=2)
+        tk.Button(self.filter_frame, text="Apply Filter", command=self.apply_filter).pack(side=tk.LEFT, padx=10)
+        tk.Button(self.filter_frame, text="Clear Filter", command=self.clear_filter).pack(side=tk.LEFT)
+
+    def apply_filter(self):
+        if self.df is None:
+            return
+        df_filtered = self.df.copy()
+        for col, var in self.filter_vars.items():
+            val = var.get().strip()
+            if val:
+                df_filtered = df_filtered[df_filtered[col].astype(str).str.contains(val, case=False, na=False)]
+        self.show_table(df_override=df_filtered)
+
+    def clear_filter(self):
+        for var in self.filter_vars.values():
+            var.set("")
+        self.show_table()
+
+    def show_table(self, df_override=None):
         # Remove old table if exists
         if hasattr(self, 'table_frame'):
             self.table_frame.destroy()
         self.table_frame = tk.Frame(self.root)
         self.table_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        if self.df is None or self.df.empty:
+        df_to_show = df_override if df_override is not None else self.df
+        if df_to_show is None or df_to_show.empty:
             return
-        cols = list(self.df.columns)
-        # Add a vertical scrollbar for the Treeview
+        cols = list(df_to_show.columns)
         tree_scroll = tk.Scrollbar(self.table_frame, orient="vertical")
         tree_scroll.pack(side="right", fill="y")
         tree = ttk.Treeview(self.table_frame, columns=cols, show='headings', selectmode='extended', yscrollcommand=tree_scroll.set)
@@ -110,7 +146,7 @@ class ContactCleanerApp:
         style.map('Treeview', background=[('selected', '#b3d9ff')])
         style.configure("Treeview.Heading", font=("Arial", 10, "bold"))
         style.layout("Treeview", [('Treeview.treearea', {'sticky': 'nswe'})])
-        for i, row in self.df.iterrows():
+        for i, row in df_to_show.iterrows():
             values = [row[col] for col in cols]
             tag = 'evenrow' if i % 2 == 0 else 'oddrow'
             tree.insert('', 'end', values=values, tags=(tag,))
