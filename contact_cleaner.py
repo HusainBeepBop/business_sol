@@ -29,6 +29,7 @@ class ContactCleanerApp:
             try:
                 self.df = pd.read_csv(file_path)
                 messagebox.showinfo("Loaded", f"Loaded {file_path} with {len(self.df)} rows.")
+                self.show_table()  # Show table immediately after loading
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load CSV: {e}")
 
@@ -92,10 +93,14 @@ class ContactCleanerApp:
             self.table_frame.destroy()
         self.table_frame = tk.Frame(self.root)
         self.table_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        if self.df is None:
+        if self.df is None or self.df.empty:
             return
         cols = list(self.df.columns)
-        tree = ttk.Treeview(self.table_frame, columns=cols, show='headings', selectmode='extended')
+        # Add a vertical scrollbar for the Treeview
+        tree_scroll = tk.Scrollbar(self.table_frame, orient="vertical")
+        tree_scroll.pack(side="right", fill="y")
+        tree = ttk.Treeview(self.table_frame, columns=cols, show='headings', selectmode='extended', yscrollcommand=tree_scroll.set)
+        tree_scroll.config(command=tree.yview)
         for col in cols:
             tree.heading(col, text=col)
             tree.column(col, width=120, anchor='center')
@@ -111,9 +116,14 @@ class ContactCleanerApp:
             tree.insert('', 'end', values=values, tags=(tag,))
         tree.tag_configure('evenrow', background='#f9f9f9')
         tree.tag_configure('oddrow', background='#e6e6e6')
-        tree.pack(fill="both", expand=True)
+        tree.pack(fill="both", expand=True, side="left")
         # Add lines between rows
         style.configure("Treeview", bordercolor="#cccccc", borderwidth=1)
+        # Smooth mousewheel scrolling
+        def _on_mousewheel(event):
+            tree.yview_scroll(int(-1*(event.delta/120)), "units")
+        tree.bind('<Enter>', lambda e: tree.bind_all('<MouseWheel>', _on_mousewheel))
+        tree.bind('<Leave>', lambda e: tree.unbind_all('<MouseWheel>'))
         # Save reference for later editing
         self.tree = tree
 
