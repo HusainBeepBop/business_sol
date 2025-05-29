@@ -40,23 +40,39 @@ class ContactCleanerApp:
         popup.title("Select Fields to Keep")
         popup.geometry("350x400")
         tk.Label(popup, text="Select fields to keep:", font=("Arial", 12, "bold")).pack(pady=10)
-        # Scrollable frame for checkboxes
-        canvas = tk.Canvas(popup, borderwidth=0, height=300)
-        scrollbar = tk.Scrollbar(popup, orient="vertical", command=canvas.yview)
+        # Improved scrollable frame for checkboxes
+        container = tk.Frame(popup)
+        container.pack(fill="both", expand=True, padx=10, pady=(0,10))
+        canvas = tk.Canvas(container, borderwidth=0, height=300)
+        scrollbar = tk.Scrollbar(container, orient="vertical", command=canvas.yview)
         scroll_frame = tk.Frame(canvas)
+        scroll_frame_id = canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        scroll_frame.bind("<Enter>", lambda e: scroll_frame.bind_all('<MouseWheel>', _on_mousewheel))
+        scroll_frame.bind("<Leave>", lambda e: scroll_frame.unbind_all('<MouseWheel>'))
+        def _resize_canvas(event):
+            canvas.itemconfig(scroll_frame_id, width=event.width)
+        canvas.bind('<Configure>', _resize_canvas)
         scroll_frame.bind(
             "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
-        canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side="left", fill="both", expand=True, padx=10)
+        canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         field_vars = {}
         for col in self.df.columns:
             var = tk.BooleanVar(value=True)
             cb = tk.Checkbutton(scroll_frame, text=col, variable=var)
-            cb.pack(anchor="w")
+            cb.pack(anchor="w", pady=2)
             field_vars[col] = var
+        def check_apply_visibility(*_):
+            if any(var.get() for var in field_vars.values()):
+                apply_btn.pack(pady=10)
+            else:
+                apply_btn.pack_forget()
+        for var in field_vars.values():
+            var.trace_add('write', check_apply_visibility)
         def apply_clean():
             keep_fields = [col for col, var in field_vars.items() if var.get()]
             if not keep_fields:
@@ -67,7 +83,8 @@ class ContactCleanerApp:
             messagebox.showinfo("Cleaned", f"CSV updated to keep {len(keep_fields)} fields.")
             popup.destroy()
             self.show_table()
-        tk.Button(popup, text="Apply", command=apply_clean, bg="#4CAF50", fg="white").pack(pady=10)
+        apply_btn = tk.Button(popup, text="Apply", command=apply_clean, bg="#4CAF50", fg="white")
+        check_apply_visibility()
 
     def show_table(self):
         # Remove old table if exists
