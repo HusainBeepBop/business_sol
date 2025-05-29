@@ -7,11 +7,12 @@ These scripts help automate everyday operations — saving time, minimizing erro
 
 ## 🚀 Features
 
-- 📧 **Email Automation** – Send bulk or templated emails using a Python script.
+- 📧 **Email Automation** – Send bulk or templated emails using a Python script or GUI.
 - 🗃️ **File Management** – Easily rename, move, or organize files in bulk.
 - 📋 **Report Generation** – Generate business reports with minimal input.
 - 🕒 **Task Scheduling** – Schedule your scripts to run at specific times.
 - 🧱 **Executable Bundling** – Scripts can be converted into standalone `.exe` files using PyInstaller.
+- 🧹 **Contact CSV Cleaner & Editor** – Clean, filter, edit, and export contact lists with a user-friendly GUI. Supports direct cell editing, row deletion, and Excel export.
 
 ---
 
@@ -33,46 +34,62 @@ pip install -r requirements.txt
 > ℹ️ Make sure you have Python 3.8+ installed on your system.
 
 ## 🛠️ How to Use
-**Each script is self-contained in its own folder. Navigate to the desired automation and run:**
+**Each script is self-contained in its own folder or as a standalone file.**
+
+### Email Sender GUI
+- Run the email sender tool:
 
 ```bash
-cd email_automation
-python send_email.py
+python email_sender.py
 ```
+- Or use the packaged executable (if available):
+
+```powershell
+dist\email_sender.exe
+```
+
+### Contact CSV Cleaner & Editor
+- Run the contact cleaner tool:
+
+```bash
+python contact_cleaner.py
+```
+- Or use the packaged executable (if available):
+
+```powershell
+dist\contact_cleaner.exe
+```
+
+**Features:**
+- Load a CSV of contacts.
+- Select which fields to keep (clean fields).
+- View and filter contacts in a table.
+- Double-click any cell to edit it directly (auto-saves to CSV).
+- Select rows and click "Delete Selected" to remove contacts (with confirmation).
+- Export selected rows to Excel.
+
 ## 🧪 Packaging as Executable
 **To generate a standalone .exe for any script using PyInstaller:**
 
 ```bash
-pyinstaller --onefile your_script.py
+python -m PyInstaller --onefile your_script.py --name your_script
 ```
 >[!NOTE]
->The executable will be available in the dist/ folder.
-
-## 💼 Who is this for?
-- Small business owners
-- Freelancers
-- Startup founders
-- Anyone looking to automate boring, repetitive digital tasks
-
+>The executable will be available in the dist/ folder. Use a unique name for each tool to avoid overwriting previous builds.
 
 ## 📁 Folder Structure
 
 ```bash
-    business_sol/
-    │
-    ├── email_automation/
-    │   ├── send_email.py
-    │   ├── config.json
-    │   └── ...
-    │
-    ├── file_renamer/
-    │   ├── rename_files.py
-    │   └── ...
-    │
-    ├── report_generator/
-    │   └── generate_report.py
-    │
-    └── README.md
+business_sol/
+│
+├── email_sender.py
+├── contact_cleaner.py
+├── requirements.txt
+├── dist/
+│   ├── email_sender.exe
+│   └── contact_cleaner.exe
+├── ...
+└── README.md
 ```
 
 ## 🤝 Contributing
