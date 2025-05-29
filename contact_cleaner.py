@@ -36,8 +36,60 @@ class ContactCleanerApp:
         if self.df is None:
             messagebox.showwarning("No CSV", "Please load a CSV file first.")
             return
-        # Placeholder for next checkpoint
-        messagebox.showinfo("Clean", "Field selection popup will be implemented in the next checkpoint.")
+        popup = tk.Toplevel(self.root)
+        popup.title("Select Fields to Keep")
+        popup.geometry("350x400")
+        tk.Label(popup, text="Select fields to keep:", font=("Arial", 12, "bold")).pack(pady=10)
+        field_vars = {}
+        fields_frame = tk.Frame(popup)
+        fields_frame.pack(fill="both", expand=True, padx=10)
+        for col in self.df.columns:
+            var = tk.BooleanVar(value=True)
+            cb = tk.Checkbutton(fields_frame, text=col, variable=var)
+            cb.pack(anchor="w")
+            field_vars[col] = var
+        def apply_clean():
+            keep_fields = [col for col, var in field_vars.items() if var.get()]
+            if not keep_fields:
+                messagebox.showwarning("No Fields", "You must keep at least one field.")
+                return
+            self.df = self.df[keep_fields]
+            self.df.to_csv(self.csv_path, index=False)
+            messagebox.showinfo("Cleaned", f"CSV updated to keep {len(keep_fields)} fields.")
+            popup.destroy()
+            self.show_table()
+        tk.Button(popup, text="Apply", command=apply_clean, bg="#4CAF50", fg="white").pack(pady=10)
+
+    def show_table(self):
+        # Remove old table if exists
+        if hasattr(self, 'table_frame'):
+            self.table_frame.destroy()
+        self.table_frame = tk.Frame(self.root)
+        self.table_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        if self.df is None:
+            return
+        cols = list(self.df.columns)
+        tree = ttk.Treeview(self.table_frame, columns=cols, show='headings', selectmode='extended')
+        for col in cols:
+            tree.heading(col, text=col)
+            tree.column(col, width=120, anchor='center')
+        # Add alternating row colors
+        style = ttk.Style()
+        style.configure("Treeview", rowheight=24)
+        style.map('Treeview', background=[('selected', '#b3d9ff')])
+        style.configure("Treeview.Heading", font=("Arial", 10, "bold"))
+        style.layout("Treeview", [('Treeview.treearea', {'sticky': 'nswe'})])
+        for i, row in self.df.iterrows():
+            values = [row[col] for col in cols]
+            tag = 'evenrow' if i % 2 == 0 else 'oddrow'
+            tree.insert('', 'end', values=values, tags=(tag,))
+        tree.tag_configure('evenrow', background='#f9f9f9')
+        tree.tag_configure('oddrow', background='#e6e6e6')
+        tree.pack(fill="both", expand=True)
+        # Add lines between rows
+        style.configure("Treeview", bordercolor="#cccccc", borderwidth=1)
+        # Save reference for later editing
+        self.tree = tree
 
 
 def main():
