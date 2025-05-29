@@ -40,12 +40,21 @@ class ContactCleanerApp:
         popup.title("Select Fields to Keep")
         popup.geometry("350x400")
         tk.Label(popup, text="Select fields to keep:", font=("Arial", 12, "bold")).pack(pady=10)
+        # Scrollable frame for checkboxes
+        canvas = tk.Canvas(popup, borderwidth=0, height=300)
+        scrollbar = tk.Scrollbar(popup, orient="vertical", command=canvas.yview)
+        scroll_frame = tk.Frame(canvas)
+        scroll_frame.bind(
+            "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True, padx=10)
+        scrollbar.pack(side="right", fill="y")
         field_vars = {}
-        fields_frame = tk.Frame(popup)
-        fields_frame.pack(fill="both", expand=True, padx=10)
         for col in self.df.columns:
             var = tk.BooleanVar(value=True)
-            cb = tk.Checkbutton(fields_frame, text=col, variable=var)
+            cb = tk.Checkbutton(scroll_frame, text=col, variable=var)
             cb.pack(anchor="w")
             field_vars[col] = var
         def apply_clean():
