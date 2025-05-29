@@ -98,30 +98,60 @@ class ContactCleanerApp:
         if self.df is None or self.df.empty:
             return
         tk.Label(self.filter_frame, text="Filter:").pack(side=tk.LEFT, padx=(0, 5))
-        self.filter_vars = {}
-        for col in self.df.columns:
-            var = tk.StringVar()
-            self.filter_vars[col] = var
-            tk.Label(self.filter_frame, text=col+":").pack(side=tk.LEFT)
-            entry = tk.Entry(self.filter_frame, textvariable=var, width=10)
-            entry.pack(side=tk.LEFT, padx=2)
-        tk.Button(self.filter_frame, text="Apply Filter", command=self.apply_filter).pack(side=tk.LEFT, padx=10)
-        tk.Button(self.filter_frame, text="Clear Filter", command=self.clear_filter).pack(side=tk.LEFT)
+        self.filter_column = tk.StringVar(value=self.df.columns[0])
+        filter_options = list(self.df.columns)
+        filter_menu = ttk.Combobox(self.filter_frame, textvariable=self.filter_column, values=filter_options, state="readonly", width=12)
+        filter_menu.pack(side=tk.LEFT, padx=2)
+        self.filter_type = tk.StringVar(value="Contains")
+        filter_type_options = ["Contains", "Starts With", "Filled Only", "Most Filled"]
+        filter_type_menu = ttk.Combobox(self.filter_frame, textvariable=self.filter_type, values=filter_type_options, state="readonly", width=12)
+        filter_type_menu.pack(side=tk.LEFT, padx=2)
+        self.filter_value = tk.StringVar()
+        self.filter_entry = tk.Entry(self.filter_frame, textvariable=self.filter_value, width=15)
+        self.filter_entry.pack(side=tk.LEFT, padx=2)
+        tk.Button(self.filter_frame, text="Apply Filter", command=self.apply_filter, bg="#2196F3", fg="white").pack(side=tk.LEFT, padx=5)
+        tk.Button(self.filter_frame, text="Clear Filter", command=self.clear_filter, bg="#f44336", fg="white").pack(side=tk.LEFT, padx=5)
+        # Always show Export button on the right
+        tk.Button(self.filter_frame, text="Export Selected", command=self.export_selected, bg="#4CAF50", fg="white").pack(side=tk.RIGHT, padx=5)
 
     def apply_filter(self):
         if self.df is None:
             return
+        col = self.filter_column.get()
+        ftype = self.filter_type.get()
+        val = self.filter_value.get().strip()
         df_filtered = self.df.copy()
-        for col, var in self.filter_vars.items():
-            val = var.get().strip()
-            if val:
-                df_filtered = df_filtered[df_filtered[col].astype(str).str.contains(val, case=False, na=False)]
+        if ftype == "Contains" and val:
+            df_filtered = df_filtered[df_filtered[col].astype(str).str.contains(val, case=False, na=False)]
+        elif ftype == "Starts With" and val:
+            df_filtered = df_filtered[df_filtered[col].astype(str).str.startswith(val, na=False)]
+        elif ftype == "Filled Only":
+            df_filtered = df_filtered[df_filtered[col].notna() & (df_filtered[col].astype(str).str.strip() != "")]
+        elif ftype == "Most Filled":
+            # Show only the column with the most filled values
+            most_filled_col = self.df.count().idxmax()
+            df_filtered = self.df[[most_filled_col]]
         self.show_table(df_override=df_filtered)
 
     def clear_filter(self):
-        for var in self.filter_vars.values():
-            var.set("")
+        self.filter_value.set("")
         self.show_table()
+
+    def export_selected(self):
+        if not hasattr(self, 'tree') or self.df is None:
+            messagebox.showwarning("No Data", "No data to export.")
+            return
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("No Selection", "Please select rows to export.")
+            return
+        cols = list(self.df.columns)
+        rows = [self.tree.item(i)['values'] for i in selected]
+        df_export = pd.DataFrame(rows, columns=cols)
+        file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
+        if file_path:
+            df_export.to_excel(file_path, index=False)
+            messagebox.showinfo("Exported", f"Exported {len(df_export)} contacts to {file_path}")
 
     def show_table(self, df_override=None):
         # Remove old table if exists
