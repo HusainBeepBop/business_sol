@@ -1,4 +1,11 @@
 import sys
+# Monkey-patch for PyInstaller/Speedtest compatibility
+if not hasattr(sys, 'stdout') or sys.stdout is None:
+    import io
+    sys.stdout = io.StringIO()
+
+# Ensure builtins is imported for speedtest-cli compatibility
+import builtins
 import threading
 import time
 from datetime import datetime
