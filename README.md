@@ -13,6 +13,7 @@ These scripts help automate everyday operations — saving time, minimizing erro
 - 🕒 **Task Scheduling** – Schedule your scripts to run at specific times.
 - 🧱 **Executable Bundling** – Scripts can be converted into standalone `.exe` files using PyInstaller.
 - 🧹 **Contact CSV Cleaner & Editor** – Clean, filter, edit, and export contact lists with a user-friendly GUI. Supports direct cell editing, row deletion, and Excel export.
+- 🌐 **Net Speed Monitor** – Continuously measure and log internet speed (download, upload, ping) with real-time graphs and CSV export. Built with PyQt6 and pyqtgraph.
 
 ---
 
@@ -60,6 +61,18 @@ python contact_cleaner.py
 dist\contact_cleaner.exe
 ```
 
+### Net Speed Monitor
+- Run the net speed monitor tool:
+
+```bash
+python net_speed_monitor/net_speed_monitor.py
+```
+- Or use the packaged executable (if available):
+
+```powershell
+dist\net_speed_monitor.exe
+```
+
 **Features:**
 - Load a CSV of contacts.
 - Select which fields to keep (clean fields).
@@ -67,6 +80,10 @@ dist\contact_cleaner.exe
 - Double-click any cell to edit it directly (auto-saves to CSV).
 - Select rows and click "Delete Selected" to remove contacts (with confirmation).
 - Export selected rows to Excel.
+- Live graph of download/upload speeds and ping.
+- Start, pause/resume, and stop controls.
+- Logs all results to a timestamped CSV file.
+- Flags critical drops in download speed.
 
 ## 🧪 Packaging as Executable
 **To generate a standalone .exe for any script using PyInstaller:**
@@ -84,10 +101,13 @@ business_sol/
 │
 ├── email_sender.py
 ├── contact_cleaner.py
+├── net_speed_monitor/
+│   └── net_speed_monitor.py
 ├── requirements.txt
 ├── dist/
 │   ├── email_sender.exe
 │   └── contact_cleaner.exe
+│   └── net_speed_monitor.exe
 ├── ...
 └── README.md
 ```
