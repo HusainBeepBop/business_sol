@@ -143,11 +143,11 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
 
         # Thread + worker
-        self.thread = QThread()
-        self.worker = SpeedTestWorker(interval=60)  # 60‑second interval
-        self.worker.moveToThread(self.thread)
+        self.worker = SpeedTestWorker(interval=10)  # 10-second interval for more frequent updates
+        self.worker_thread = QThread()
+        self.worker.moveToThread(self.worker_thread)
         self.worker.result_ready.connect(self.handle_result)
-        self.thread.started.connect(self.worker.start_tests)
+        self.worker_thread.started.connect(self.worker.start_tests)
 
         # Signals
         self.start_btn.clicked.connect(self.start_tests)
@@ -156,8 +156,8 @@ class MainWindow(QMainWindow):
 
     # ‑‑‑ UI callbacks
     def start_tests(self):
-        if not self.thread.isRunning():
-            self.thread.start()
+        if not self.worker_thread.isRunning():
+            self.worker_thread.start()
         self.start_btn.setEnabled(False)
         self.pause_btn.setEnabled(True)
         self.stop_btn.setEnabled(True)
@@ -169,8 +169,8 @@ class MainWindow(QMainWindow):
 
     def stop_tests(self):
         self.worker.stop()
-        self.thread.quit()
-        self.thread.wait()
+        self.worker_thread.quit()
+        self.worker_thread.wait()
         self.save_data()
         self.start_btn.setEnabled(True)
         self.pause_btn.setEnabled(False)
@@ -193,15 +193,15 @@ class MainWindow(QMainWindow):
             self.ping_label.setText("Ping: error")
 
         # update plot lines
-        x = self.data.index
-        self.download_line.setData(x, self.data["download"].fillna(0))
-        self.upload_line.setData(x, self.data["upload"].fillna(0))
+        x = self.data.index.values
+        self.download_line.setData(x, self.data["download"].fillna(0).values)
+        self.upload_line.setData(x, self.data["upload"].fillna(0).values)
 
         # critical drops (download < 30% of mean of previous 5 tests)
         if len(self.data) > 5:
             recent_mean = self.data["download"].tail(5).mean()
             drops = self.data["download"] < 0.3 * recent_mean
-            self.drop_scatter.setData(x[drops], self.data.loc[drops, "download"])
+            self.drop_scatter.setData(x[drops], self.data.loc[drops, "download"].values)
 
     # ‑‑‑ Helpers
     def save_data(self):
@@ -220,10 +220,10 @@ class MainWindow(QMainWindow):
             )
 
     def closeEvent(self, event: QCloseEvent):
-        if self.thread.isRunning():
+        if self.worker_thread.isRunning():
             self.worker.stop()
-            self.thread.quit()
-            self.thread.wait()
+            self.worker_thread.quit()
+            self.worker_thread.wait()
         self.save_data()
         super().closeEvent(event)
 
