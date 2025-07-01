@@ -120,6 +120,15 @@ class MainWindow(QMainWindow):
         )
         self.drop_scatter = pg.ScatterPlotItem(pen=None, brush="r", size=10)
         self.plot.addItem(self.drop_scatter)
+        # Set up auto-range for x-axis (show last N points)
+        self.max_points = 30  # Number of points to keep visible
+        self.plot.setXRange(0, self.max_points, padding=0)
+        self.plot.setAutoVisible(y=True)
+
+        # Loading animation
+        self.loading_label = QLabel("<b>Loading...</b>")
+        self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.loading_label.hide()
 
         # ‑‑‑ Labels
         self.dl_label = QLabel("Download: … Mbps")
@@ -144,6 +153,7 @@ class MainWindow(QMainWindow):
         vbox = QVBoxLayout()
         vbox.addLayout(hbox)
         vbox.addWidget(self.plot)
+        vbox.addWidget(self.loading_label)
         vbox.addLayout(btnbox)
         container = QWidget()
         container.setLayout(vbox)
@@ -168,6 +178,8 @@ class MainWindow(QMainWindow):
         self.start_btn.setEnabled(False)
         self.pause_btn.setEnabled(True)
         self.stop_btn.setEnabled(True)
+        self.loading_label.show()
+        self.loading_label.setText("<b>Testing... Please wait</b>")
 
     def toggle_pause(self):
         paused = self.pause_btn.text() == "Pause"
@@ -182,6 +194,7 @@ class MainWindow(QMainWindow):
         self.start_btn.setEnabled(True)
         self.pause_btn.setEnabled(False)
         self.stop_btn.setEnabled(False)
+        self.loading_label.hide()
 
     def handle_result(self, result: dict):
         # append to DataFrame
@@ -193,16 +206,24 @@ class MainWindow(QMainWindow):
             self.dl_label.setText(f"Download: {result['download']:.2f} Mbps")
             self.ul_label.setText(f"Upload: {result['upload']:.2f} Mbps")
             self.ping_label.setText(f"Ping: {result['ping']:.2f} ms")
+            self.loading_label.setText("<b>Testing... Please wait</b>")
         else:
             # error case
             self.dl_label.setText("Download: error")
             self.ul_label.setText("Upload: error")
             self.ping_label.setText("Ping: error")
+            self.loading_label.setText("<b>Error: Test failed</b>")
 
         # update plot lines
         x = self.data.index.values
         self.download_line.setData(x, self.data["download"].fillna(0).values)
         self.upload_line.setData(x, self.data["upload"].fillna(0).values)
+
+        # Auto-move x-axis to keep last N points visible
+        if len(x) > self.max_points:
+            self.plot.setXRange(x[-self.max_points], x[-1], padding=0)
+        else:
+            self.plot.setXRange(0, self.max_points, padding=0)
 
         # critical drops (download < 30% of mean of previous 5 tests)
         if len(self.data) > 5:
@@ -232,6 +253,7 @@ class MainWindow(QMainWindow):
             self.worker_thread.quit()
             self.worker_thread.wait()
         self.save_data()
+        self.loading_label.hide()
         super().closeEvent(event)
 
 
