@@ -2,8 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0] - 2025-05-29
+## [3.0] - 2025-07-01
 ### Added
+- A minimal desktop application to continuously measure and log internet speed (download, upload, ping) with real-time graphs, start/stop/pause controls, and persistent CSV logging. Built with PyQt6 and pyqtgraph for smooth live plotting. 
+
+## [2.0] - 2025-05-29
 - Contact CSV Cleaner & Editor GUI: clean, filter, edit, delete, and export contacts from CSV files.
 - Direct cell editing in table view (double-click to edit, auto-save to CSV).
 - Row deletion with confirmation popup.
