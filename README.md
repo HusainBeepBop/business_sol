@@ -86,6 +86,7 @@ dist\net_speed_monitor.exe
 - Select rows and click "Delete Selected" to remove contacts (with confirmation).
 - Export selected rows to Excel.
 - Live graph of download/upload speeds, ping, and system metrics (CPU usage, memory usage, CPU temperature).
+- Each metric has its own colored line on the graph (colors can be changed in one place in the code for easy customization).
 - Start, pause/resume, and stop controls.
 - Logs all results to a timestamped CSV file (including system metrics).
 - Flags critical drops in download speed.

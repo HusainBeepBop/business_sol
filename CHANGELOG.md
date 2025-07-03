@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Net Speed Monitor now logs and displays system metrics: CPU usage, memory usage, and CPU temperature (if available) alongside internet speed.
 - All metrics are saved to CSV and visible in the GUI.
+- Live graph lines for each metric (download, upload, CPU %, memory %, CPU temp) with customizable colors in one place in the code.
 - Updated README to document new features for public users.
 
 ## [3.0] - 2025-07-01

@@ -144,11 +144,27 @@ class MainWindow(QMainWindow):
         pg.setConfigOptions(antialias=True)
         self.plot = pg.PlotWidget(title="Live Internet Speed (Mbps)")
         self.plot.addLegend()
+        # --- Graph line colors (edit here to change everywhere) ---
+        self.color_download = 'b'  # blue
+        self.color_upload = 'g'    # green
+        self.color_cpu = 'm'       # magenta
+        self.color_mem = 'c'       # cyan
+        self.color_temp = 'orange' # orange
+
         self.download_line = self.plot.plot(
-            pen=pg.mkPen(width=2), name="Download"
+            pen=pg.mkPen(self.color_download, width=2), name="Download"
         )
         self.upload_line = self.plot.plot(
-            pen=pg.mkPen(style=Qt.PenStyle.DotLine, width=2), name="Upload"
+            pen=pg.mkPen(self.color_upload, style=Qt.PenStyle.DotLine, width=2), name="Upload"
+        )
+        self.cpu_line = self.plot.plot(
+            pen=pg.mkPen(self.color_cpu, width=2), name="CPU %"
+        )
+        self.mem_line = self.plot.plot(
+            pen=pg.mkPen(self.color_mem, width=2), name="Memory %"
+        )
+        self.temp_line = self.plot.plot(
+            pen=pg.mkPen(self.color_temp, width=2), name="CPU Temp"
         )
         self.drop_scatter = pg.ScatterPlotItem(pen=None, brush="r", size=10)
         self.plot.addItem(self.drop_scatter)
@@ -263,6 +279,13 @@ class MainWindow(QMainWindow):
         x = self.data.index.values
         self.download_line.setData(x, self.data["download"].fillna(0).values)
         self.upload_line.setData(x, self.data["upload"].fillna(0).values)
+        self.cpu_line.setData(x, self.data["cpu_percent"].fillna(0).values)
+        self.mem_line.setData(x, self.data["mem_percent"].fillna(0).values)
+        # Only plot CPU temp if at least one value is not None
+        if self.data["cpu_temp"].notnull().any():
+            self.temp_line.setData(x, self.data["cpu_temp"].fillna(0).values)
+        else:
+            self.temp_line.clear()
 
         # Auto-move x-axis to keep last N points visible
         if len(x) > self.max_points:
