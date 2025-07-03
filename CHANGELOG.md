@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1] - 2025-07-04
+### Added
+- Net Speed Monitor now logs and displays system metrics: CPU usage, memory usage, and CPU temperature (if available) alongside internet speed.
+- All metrics are saved to CSV and visible in the GUI.
+- Updated README to document new features for public users.
+
 ## [3.0] - 2025-07-01
 ### Added
 - A minimal desktop application to continuously measure and log internet speed (download, upload, ping) with real-time graphs, start/stop/pause controls, and persistent CSV logging. Built with PyQt6 and pyqtgraph for smooth live plotting. 

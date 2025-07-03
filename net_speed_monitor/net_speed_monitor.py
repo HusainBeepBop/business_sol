@@ -27,6 +27,10 @@ from PyQt6.QtWidgets import (
     QMessageBox,
 )
 
+# System monitoring
+import psutil
+import wmi
+
 try:
     from speedtest import Speedtest
 except ImportError:
@@ -59,8 +63,8 @@ class SpeedTestWorker(QObject):
 
     def _loop(self):
         st = Speedtest()
-        # pre‑fetch servers list once for speed.
         st.get_servers()
+        c = wmi.WMI(namespace="root\\wmi")
         while self._running:
             if self._paused:
                 time.sleep(1)
@@ -70,25 +74,50 @@ class SpeedTestWorker(QObject):
                 download = st.download() / 1_000_000  # to Mbps
                 upload = st.upload(pre_allocate=False) / 1_000_000
                 ping = st.results.ping
+
+                # System metrics
+                cpu_percent = psutil.cpu_percent(interval=None)
+                mem = psutil.virtual_memory()
+                mem_percent = mem.percent
+                mem_used = mem.used / (1024 ** 3)
+                mem_total = mem.total / (1024 ** 3)
+                # CPU temperature (Windows, may require admin)
+                cpu_temp = None
+                try:
+                    temps = c.MSAcpi_ThermalZoneTemperature()
+                    if temps:
+                        # Convert from tenths of Kelvin to Celsius
+                        cpu_temp = round(temps[0].CurrentTemperature / 10.0 - 273.15, 1)
+                except Exception:
+                    cpu_temp = None
+
                 result = {
                     "timestamp": datetime.now(),
                     "download": round(download, 2),
                     "upload": round(upload, 2),
                     "ping": round(ping, 2),
+                    "cpu_percent": cpu_percent,
+                    "mem_percent": mem_percent,
+                    "mem_used": round(mem_used, 2),
+                    "mem_total": round(mem_total, 2),
+                    "cpu_temp": cpu_temp,
                 }
                 self.result_ready.emit(result)
             except Exception as exc:
-                # emit error values
                 self.result_ready.emit(
                     {
                         "timestamp": datetime.now(),
                         "download": None,
                         "upload": None,
                         "ping": None,
+                        "cpu_percent": None,
+                        "mem_percent": None,
+                        "mem_used": None,
+                        "mem_total": None,
+                        "cpu_temp": None,
                         "error": str(exc),
                     }
                 )
-            # wait for next interval respecting pause/stop
             for _ in range(self._interval):
                 if not self._running or self._paused:
                     break
@@ -102,7 +131,10 @@ class MainWindow(QMainWindow):
         self.resize(900, 500)
 
         # ‑‑‑ Data storage
-        self.data = pd.DataFrame(columns=["timestamp", "download", "upload", "ping"])
+        self.data = pd.DataFrame(columns=[
+            "timestamp", "download", "upload", "ping",
+            "cpu_percent", "mem_percent", "mem_used", "mem_total", "cpu_temp"
+        ])
         self.csv_path = (
             Path.cwd()
             / f"speed_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
@@ -134,6 +166,9 @@ class MainWindow(QMainWindow):
         self.dl_label = QLabel("Download: … Mbps")
         self.ul_label = QLabel("Upload: … Mbps")
         self.ping_label = QLabel("Ping: … ms")
+        self.cpu_label = QLabel("CPU: … %")
+        self.mem_label = QLabel("Memory: … %")
+        self.temp_label = QLabel("CPU Temp: … °C")
 
         # ‑‑‑ Buttons
         self.start_btn = QPushButton("Start")
@@ -144,7 +179,7 @@ class MainWindow(QMainWindow):
 
         # Layout
         hbox = QHBoxLayout()
-        for widget in (self.dl_label, self.ul_label, self.ping_label):
+        for widget in (self.dl_label, self.ul_label, self.ping_label, self.cpu_label, self.mem_label, self.temp_label):
             hbox.addWidget(widget)
             hbox.addStretch(1)
         btnbox = QHBoxLayout()
@@ -206,12 +241,22 @@ class MainWindow(QMainWindow):
             self.dl_label.setText(f"Download: {result['download']:.2f} Mbps")
             self.ul_label.setText(f"Upload: {result['upload']:.2f} Mbps")
             self.ping_label.setText(f"Ping: {result['ping']:.2f} ms")
+            self.cpu_label.setText(f"CPU: {result.get('cpu_percent', 0):.1f} %")
+            self.mem_label.setText(f"Memory: {result.get('mem_percent', 0):.1f} % ({result.get('mem_used', 0):.2f}/{result.get('mem_total', 0):.2f} GB)")
+            temp = result.get('cpu_temp')
+            if temp is not None:
+                self.temp_label.setText(f"CPU Temp: {temp:.1f} °C")
+            else:
+                self.temp_label.setText("CPU Temp: N/A")
             self.loading_label.setText("<b>Testing... Please wait</b>")
         else:
             # error case
             self.dl_label.setText("Download: error")
             self.ul_label.setText("Upload: error")
             self.ping_label.setText("Ping: error")
+            self.cpu_label.setText("CPU: error")
+            self.mem_label.setText("Memory: error")
+            self.temp_label.setText("CPU Temp: error")
             self.loading_label.setText("<b>Error: Test failed</b>")
 
         # update plot lines

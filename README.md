@@ -13,7 +13,12 @@ These scripts help automate everyday operations — saving time, minimizing erro
 - 🕒 **Task Scheduling** – Schedule your scripts to run at specific times.
 - 🧱 **Executable Bundling** – Scripts can be converted into standalone `.exe` files using PyInstaller.
 - 🧹 **Contact CSV Cleaner & Editor** – Clean, filter, edit, and export contact lists with a user-friendly GUI. Supports direct cell editing, row deletion, and Excel export.
-- 🌐 **Net Speed Monitor** – Continuously measure and log internet speed (download, upload, ping) with real-time graphs and CSV export. Built with PyQt6 and pyqtgraph.
+- 🌐 **Net Speed Monitor** – Continuously measure and log internet speed (download, upload, ping) and key system metrics (CPU usage, memory usage, CPU temperature) with real-time graphs and CSV export. Built with PyQt6, pyqtgraph, and psutil.
+In addition to internet speed, the app now logs:
+
+- **CPU Usage (%)**
+- **Memory Usage (%)**
+- **CPU Temperature (°C)** (if available)
 
 ---
 
@@ -80,10 +85,11 @@ dist\net_speed_monitor.exe
 - Double-click any cell to edit it directly (auto-saves to CSV).
 - Select rows and click "Delete Selected" to remove contacts (with confirmation).
 - Export selected rows to Excel.
-- Live graph of download/upload speeds and ping.
+- Live graph of download/upload speeds, ping, and system metrics (CPU usage, memory usage, CPU temperature).
 - Start, pause/resume, and stop controls.
-- Logs all results to a timestamped CSV file.
+- Logs all results to a timestamped CSV file (including system metrics).
 - Flags critical drops in download speed.
+- All metrics are visible in the GUI and saved for later analysis.
 
 ## 🧪 Packaging as Executable
 **To generate a standalone .exe for any script using PyInstaller:**
