@@ -2,3 +2,9 @@ pandas
 openpyxl
 xlrd
 tkinterhtml
+PyQt6>=6.7
+pyqtgraph>=0.13
+speedtest-cli>=2.1
+psutil
+wmi
+pptx2pdf

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2] - 2025-08-04
+### Added
+- New PPTX to PDF Converter GUI: select multiple .pptx files, convert to PDF, and save all PDFs in a dedicated folder in Downloads.
+- User-friendly interface with error handling and batch processing.
+- Updated requirements and documentation for public users.
+
 ## [3.1] - 2025-07-04
 ### Added
 - Net Speed Monitor now logs and displays system metrics: CPU usage, memory usage, and CPU temperature (if available) alongside internet speed.
