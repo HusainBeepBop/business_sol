@@ -19,11 +19,22 @@ from PIL import ImageGrab
 def pptx_to_pdf(pptx_path, pdf_path):
     prs = Presentation(pptx_path)
     c = canvas.Canvas(pdf_path, pagesize=letter)
+    width, height = letter
     for i, slide in enumerate(prs.slides):
-        # Save slide as image (screen capture workaround)
-        # This requires the slide to be open in PowerPoint for best results
-        # For headless, you would need a more advanced approach
-        # Here, we just add a blank page as a placeholder
+        y = height - 40  # Start near top
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(40, y, f"Slide {i+1}")
+        y -= 30
+        c.setFont("Helvetica", 12)
+        for shape in slide.shapes:
+            if hasattr(shape, "text"):
+                for line in shape.text.splitlines():
+                    if y < 40:
+                        c.showPage()
+                        y = height - 40
+                        c.setFont("Helvetica", 12)
+                    c.drawString(60, y, line)
+                    y -= 18
         c.showPage()
     c.save()
 
