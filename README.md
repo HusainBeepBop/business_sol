@@ -14,6 +14,8 @@ These scripts help automate everyday operations — saving time, minimizing erro
 - 🧱 **Executable Bundling** – Scripts can be converted into standalone `.exe` files using PyInstaller.
 - 🧹 **Contact CSV Cleaner & Editor** – Clean, filter, edit, and export contact lists with a user-friendly GUI. Supports direct cell editing, row deletion, and Excel export.
 - 🌐 **Net Speed Monitor** – Continuously measure and log internet speed (download, upload, ping) and key system metrics (CPU usage, memory usage, CPU temperature) with real-time graphs and CSV export. Built with PyQt6, pyqtgraph, and psutil.
+- 🖼️ **PPTX to PDF Converter** – Select multiple PowerPoint (.pptx) files and convert them to PDF in one click. PDFs are saved in a dedicated folder in your Downloads. Simple, fast, and user-friendly.
+
 In addition to internet speed, the app now logs:
 
 - **CPU Usage (%)**
@@ -78,6 +80,13 @@ python net_speed_monitor/net_speed_monitor.py
 dist\net_speed_monitor.exe
 ```
 
+### PPTX to PDF Converter
+- Run the converter tool:
+
+```bash
+python pptx_to_pdf_gui.py
+```
+
 **Features:**
 - Load a CSV of contacts.
 - Select which fields to keep (clean fields).
@@ -91,6 +100,10 @@ dist\net_speed_monitor.exe
 - Logs all results to a timestamped CSV file (including system metrics).
 - Flags critical drops in download speed.
 - All metrics are visible in the GUI and saved for later analysis.
+- Select multiple .pptx files at once
+- Converts all to PDF in a single click
+- Output PDFs are saved in `Downloads/pptx_to_pdf/`
+- User-friendly interface with error handling
 
 ## 🧪 Packaging as Executable
 **To generate a standalone .exe for any script using PyInstaller:**
@@ -106,6 +119,7 @@ python -m PyInstaller --onefile your_script.py --name your_script
 ```bash
 business_sol/
 │
+├── pptx_to_pdf_gui.py
 ├── email_sender.py
 ├── contact_cleaner.py
 ├── net_speed_monitor/
@@ -115,6 +129,7 @@ business_sol/
 │   ├── email_sender.exe
 │   └── contact_cleaner.exe
 │   └── net_speed_monitor.exe
+│   └── pptx_to_pdf_gui.exe
 ├── ...
 └── README.md
 ```
