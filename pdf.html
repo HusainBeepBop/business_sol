@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Text Viewer</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- pdf.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        /* Custom font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <div class="min-h-screen font-sans flex flex-col items-center p-4 sm:p-8">
+        <div class="w-full max-w-4xl">
+            <!-- Header Section -->
+            <header class="text-center mb-8">
+                <h1 class="text-4xl sm:text-5xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+                    PDF Text Viewer
+                </h1>
+                <p class="text-gray-400 text-lg">
+                    Upload your PDF to view its text content in a clean, readable format.
+                </p>
+            </header>
+
+            <main class="w-full">
+                <!-- File Dropzone -->
+                <div id="dropzone" class="border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-300 ease-in-out border-gray-600 hover:border-purple-400">
+                    <input type="file" id="file-input" class="hidden" accept="application/pdf" />
+                    <div id="dropzone-text">
+                        <p class="text-lg mb-2">Drag 'n' drop a PDF file here, or click to select one</p>
+                        <p id="file-name" class="text-sm text-gray-500">No file chosen</p>
+                    </div>
+                </div>
+
+                <!-- Error Message Display -->
+                <div id="error-container" class="hidden mt-6 bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-lg relative" role="alert">
+                    <strong class="font-bold">Oops!</strong>
+                    <span id="error-message" class="block sm:inline ml-2"></span>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div id="loader" class="hidden mt-8 text-center">
+                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-purple-500"></div>
+                     <p class="mt-4 text-lg">Extracting text, please wait...</p>
+                </div>
+
+                <!-- Extracted Text Display -->
+                <div id="results-container" class="hidden mt-8 bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl">
+                    <h2 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">Extracted Text</h2>
+                    <pre id="extracted-text" class="whitespace-pre-wrap font-sans text-gray-300 text-base leading-relaxed"></pre>
+                </div>
+            </main>
+
+            <!-- Footer -->
+             <footer class="text-center mt-12 text-gray-500 text-sm">
+                <p>Built with HTML, Tailwind CSS & PDF.js</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // Set the worker source for pdf.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+        // Get DOM elements
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('file-input');
+        const fileNameDisplay = document.getElementById('file-name');
+        const dropzoneText = document.getElementById('dropzone-text');
+        const loader = document.getElementById('loader');
+        const errorContainer = document.getElementById('error-container');
+        const errorMessage = document.getElementById('error-message');
+        const resultsContainer = document.getElementById('results-container');
+        const extractedTextDisplay = document.getElementById('extracted-text');
+
+        // --- UI Helper Functions ---
+        const showLoader = () => loader.classList.remove('hidden');
+        const hideLoader = () => loader.classList.add('hidden');
+        const showError = (message) => {
+            errorMessage.textContent = message;
+            errorContainer.classList.remove('hidden');
+        };
+        const hideError = () => errorContainer.classList.add('hidden');
+        const showResults = (text) => {
+            extractedTextDisplay.textContent = text;
+            resultsContainer.classList.remove('hidden');
+        };
+        const hideResults = () => resultsContainer.classList.add('hidden');
+        const resetUI = () => {
+            hideLoader();
+            hideError();
+            hideResults();
+            fileNameDisplay.textContent = 'No file chosen';
+        };
+
+        // --- Drag and Drop Event Handlers ---
+        dropzone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Necessary to allow drop
+            dropzone.classList.add('border-purple-500', 'bg-gray-800');
+        });
+
+        dropzone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-purple-500', 'bg-gray-800');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-purple-500', 'bg-gray-800');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+
+        // --- Core File Handling and PDF Processing Logic ---
+        const handleFile = (file) => {
+            if (file && file.type === 'application/pdf') {
+                resetUI();
+                fileNameDisplay.textContent = `Selected: ${file.name}`;
+                showLoader();
+
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    try {
+                        const typedArray = new Uint8Array(event.target.result);
+                        const pdf = await pdfjsLib.getDocument(typedArray).promise;
+                        let fullText = '';
+                        
+                        // Loop through all pages of the PDF
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const textContent = await page.getTextContent();
+                            const pageText = textContent.items.map(item => item.str).join(' ');
+                            fullText += pageText + '\n\n'; // Add space between pages
+                        }
+                        
+                        showResults(fullText);
+                    } catch (e) {
+                        console.error("Error processing PDF:", e);
+                        showError('Sorry, there was an error processing your PDF. Please try another file.');
+                    } finally {
+                        hideLoader();
+                    }
+                };
+                
+                reader.onerror = () => {
+                     showError('Failed to read the file. Please try again.');
+                     hideLoader();
+                };
+                
+                reader.readAsArrayBuffer(file);
+            } else {
+                resetUI();
+                showError('Please upload a valid PDF file.');
+            }
+        };
+    </script>
+</body>
+</html>
