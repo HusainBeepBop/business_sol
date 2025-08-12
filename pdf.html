@@ -13,13 +13,19 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        /* Style for the sticky Table of Contents */
+        #toc-nav {
+            max-height: calc(100vh - 6rem); /* Adjust based on your header/footer */
+            overflow-y: auto;
         }
     </style>
 </head>
 <body class="bg-gray-900 text-white">
 
     <div class="min-h-screen font-sans flex flex-col items-center p-4 sm:p-8">
-        <div class="w-full max-w-4xl">
+        <div class="w-full max-w-7xl mx-auto">
             <!-- Header Section -->
             <header class="text-center mb-8">
                 <h1 class="text-4xl sm:text-5xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
@@ -53,9 +59,24 @@
                 </div>
 
                 <!-- Extracted Text Display -->
-                <div id="results-container" class="hidden mt-8 bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl">
-                    <h2 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">Extracted Text</h2>
-                    <pre id="extracted-text" class="whitespace-pre-wrap font-sans text-gray-300 text-base leading-relaxed"></pre>
+                <div id="results-container" class="hidden mt-8">
+                    <div class="flex flex-col md:flex-row gap-8 lg:gap-12">
+                        <!-- Table of Contents -->
+                        <aside class="w-full md:w-1/3 lg:w-1/4">
+                             <div class="sticky top-8">
+                                <h2 class="text-xl font-bold mb-4 text-purple-300">Table of Contents</h2>
+                                <nav id="toc-nav">
+                                    <ul id="toc-list" class="space-y-2">
+                                        <!-- ToC links will be injected here -->
+                                    </ul>
+                                </nav>
+                             </div>
+                        </aside>
+                        <!-- Main Content -->
+                        <article id="content-container" class="w-full md:w-2/3 lg:w-3/4 bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl">
+                            <!-- Headings and paragraphs will be injected here -->
+                        </article>
+                    </div>
                 </div>
             </main>
 
@@ -74,12 +95,12 @@
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('file-input');
         const fileNameDisplay = document.getElementById('file-name');
-        const dropzoneText = document.getElementById('dropzone-text');
         const loader = document.getElementById('loader');
         const errorContainer = document.getElementById('error-container');
         const errorMessage = document.getElementById('error-message');
         const resultsContainer = document.getElementById('results-container');
-        const extractedTextDisplay = document.getElementById('extracted-text');
+        const tocList = document.getElementById('toc-list');
+        const contentContainer = document.getElementById('content-container');
 
         // --- UI Helper Functions ---
         const showLoader = () => loader.classList.remove('hidden');
@@ -89,88 +110,132 @@
             errorContainer.classList.remove('hidden');
         };
         const hideError = () => errorContainer.classList.add('hidden');
-        const showResults = (text) => {
-            extractedTextDisplay.textContent = text;
-            resultsContainer.classList.remove('hidden');
-        };
+        const showResults = () => resultsContainer.classList.remove('hidden');
         const hideResults = () => resultsContainer.classList.add('hidden');
         const resetUI = () => {
             hideLoader();
             hideError();
             hideResults();
             fileNameDisplay.textContent = 'No file chosen';
+            tocList.innerHTML = '';
+            contentContainer.innerHTML = '';
         };
 
         // --- Drag and Drop Event Handlers ---
         dropzone.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                handleFile(file);
-            }
-        });
-
+        fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
         dropzone.addEventListener('dragover', (e) => {
-            e.preventDefault(); // Necessary to allow drop
+            e.preventDefault();
             dropzone.classList.add('border-purple-500', 'bg-gray-800');
         });
-
         dropzone.addEventListener('dragleave', (e) => {
             e.preventDefault();
             dropzone.classList.remove('border-purple-500', 'bg-gray-800');
         });
-
         dropzone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropzone.classList.remove('border-purple-500', 'bg-gray-800');
-            const file = e.dataTransfer.files[0];
-            if (file) {
-                handleFile(file);
-            }
+            handleFile(e.dataTransfer.files[0]);
         });
-
-        // --- Core File Handling and PDF Processing Logic ---
-        const handleFile = (file) => {
-            if (file && file.type === 'application/pdf') {
-                resetUI();
-                fileNameDisplay.textContent = `Selected: ${file.name}`;
-                showLoader();
-
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                    try {
-                        const typedArray = new Uint8Array(event.target.result);
-                        const pdf = await pdfjsLib.getDocument(typedArray).promise;
-                        let fullText = '';
-                        
-                        // Loop through all pages of the PDF
-                        for (let i = 1; i <= pdf.numPages; i++) {
-                            const page = await pdf.getPage(i);
-                            const textContent = await page.getTextContent();
-                            const pageText = textContent.items.map(item => item.str).join(' ');
-                            fullText += pageText + '\n\n'; // Add space between pages
-                        }
-                        
-                        showResults(fullText);
-                    } catch (e) {
-                        console.error("Error processing PDF:", e);
-                        showError('Sorry, there was an error processing your PDF. Please try another file.');
-                    } finally {
-                        hideLoader();
-                    }
-                };
-                
-                reader.onerror = () => {
-                     showError('Failed to read the file. Please try again.');
-                     hideLoader();
-                };
-                
-                reader.readAsArrayBuffer(file);
-            } else {
+        
+        // --- Core PDF Processing Logic ---
+        const handleFile = async (file) => {
+            if (!file || file.type !== 'application/pdf') {
                 resetUI();
                 showError('Please upload a valid PDF file.');
+                return;
+            }
+            
+            resetUI();
+            fileNameDisplay.textContent = `Selected: ${file.name}`;
+            showLoader();
+
+            try {
+                const fileBuffer = await file.arrayBuffer();
+                const typedArray = new Uint8Array(fileBuffer);
+                const pdf = await pdfjsLib.getDocument(typedArray).promise;
+                
+                await processAndRenderPdf(pdf);
+
+                showResults();
+            } catch (e) {
+                console.error("Error processing PDF:", e);
+                showError('Sorry, there was an error processing your PDF. Please try another file.');
+            } finally {
+                hideLoader();
             }
         };
+
+        // --- Text Processing and Rendering ---
+        const processAndRenderPdf = async (pdf) => {
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                // Re-add line breaks based on item positions
+                let lastY = -1;
+                const pageText = textContent.items.map(item => {
+                    let text = '';
+                    if (lastY !== -1 && item.transform[5] < lastY - 5) { // Heuristic for new line
+                        text += '\n';
+                    }
+                    lastY = item.transform[5];
+                    return text + item.str;
+                }).join('');
+                fullText += pageText + '\n\n';
+            }
+
+            // Split text into paragraphs (separated by one or more blank lines)
+            const paragraphs = fullText.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+            
+            paragraphs.forEach(p => {
+                const trimmedP = p.trim();
+                // Heuristic to identify headings
+                const isHeading = isPotentialHeading(trimmedP);
+
+                if (isHeading) {
+                    const headingId = trimmedP.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                    
+                    // Add heading to main content
+                    const hElement = document.createElement('h2');
+                    hElement.id = headingId;
+                    hElement.textContent = trimmedP;
+                    hElement.className = 'text-2xl font-bold mt-8 mb-4 text-gray-100 border-b border-gray-700 pb-2';
+                    contentContainer.appendChild(hElement);
+
+                    // Add link to Table of Contents
+                    const liElement = document.createElement('li');
+                    const aElement = document.createElement('a');
+                    aElement.href = `#${headingId}`;
+                    aElement.textContent = trimmedP;
+                    aElement.className = 'hover:text-purple-300 transition-colors duration-200 block';
+                    liElement.appendChild(aElement);
+                    tocList.appendChild(liElement);
+
+                } else {
+                    // Add paragraph to main content
+                    const pElement = document.createElement('p');
+                    pElement.textContent = trimmedP;
+                    pElement.className = 'text-gray-300 text-base leading-relaxed mb-4';
+                    contentContainer.appendChild(pElement);
+                }
+            });
+        };
+
+        function isPotentialHeading(text) {
+            // Rule 1: Starts with number and dot (e.g., "1. Introduction")
+            if (/^\d+\.\s/.test(text)) return true;
+            // Rule 2: Is a common section title
+            const commonTitles = ['abstract', 'introduction', 'conclusion', 'references', 'summary', 'appendix'];
+            if (commonTitles.includes(text.toLowerCase())) return true;
+            // Rule 3: Is short (<= 10 words) and has no period at the end
+            if (text.split(' ').length <= 10 && !text.endsWith('.')) return true;
+            // Rule 4: Is all uppercase (and short)
+            if (text.toUpperCase() === text && text.split(' ').length <= 10 && /[A-Z]/.test(text)) return true;
+            
+            return false;
+        }
+
     </script>
 </body>
 </html>
